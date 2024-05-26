@@ -30,7 +30,7 @@ export class NestHTTPInterceptor implements NestInterceptor {
         );
       }),
       catchError(error => {
-        console.error(error);
+        if (!error.status || error.status >= 500) console.error(error);
 
         const duration = Date.now() - startTime;
         const statusCode = error.status || error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
