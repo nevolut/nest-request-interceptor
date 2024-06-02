@@ -17,7 +17,8 @@ class NestHTTPInterceptor {
             (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms`);
         }), (0, operators_1.catchError)(error => {
             var _a;
-            console.error(error);
+            if (!error.status || error.status >= 500)
+                console.error(error);
             const duration = Date.now() - startTime;
             const statusCode = error.status || error.statusCode || common_1.HttpStatus.INTERNAL_SERVER_ERROR;
             const statusCodeColor = this.getStatusCodeColor(statusCode);
