@@ -46,7 +46,7 @@ export class NestHTTPInterceptor implements NestInterceptor {
             res.getHeader("content-length") || "-"
           } ${duration}ms \x1b[33m${message}\x1b[0m`
         );
-        return throwError(() => new HttpException(message, statusCode));
+        return throwError(() => error);
       })
     );
   }

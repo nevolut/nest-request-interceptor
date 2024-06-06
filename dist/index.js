@@ -30,7 +30,7 @@ class NestHTTPInterceptor {
                     message = error.response.message.join(", ");
             }
             (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms \x1b[33m${message}\x1b[0m`);
-            return (0, rxjs_1.throwError)(() => new common_1.HttpException(message, statusCode));
+            return (0, rxjs_1.throwError)(() => error);
         }));
     }
     getStatusCodeColor(statusCode) {
