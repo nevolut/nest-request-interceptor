@@ -1,6 +1,6 @@
 {
   "name": "nest-request-interceptor",
-  "version": "9.0.0",
+  "version": "10.0.0",
   "main": "dist/main.js",
   "scripts": {},
   "repository": {
@@ -12,8 +12,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@nestjs/common": "^9.0.0",
-    "@nestjs/microservices": "^9.0.0",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/microservices": "^10.0.0",
     "express": "^4.19.2",
     "moment": "^2.30.1"
   },
