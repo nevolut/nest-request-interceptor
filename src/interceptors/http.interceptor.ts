@@ -1,17 +1,17 @@
 import {
-  Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  HttpException,
-  HttpStatus
+  HttpStatus,
+  Injectable
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { Observable, throwError } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
-import log from "./log";
+import log from "../utils/log";
 
-export class NestHTTPInterceptor implements NestInterceptor {
+@Injectable()
+export class HTTPInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 

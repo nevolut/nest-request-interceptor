@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NestHTTPInterceptor = void 0;
+exports.HTTPInterceptor = void 0;
 const common_1 = require("@nestjs/common");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const log_1 = require("./log");
-class NestHTTPInterceptor {
+const log_1 = require("../utils/log");
+class HTTPInterceptor {
     intercept(context, next) {
         const startTime = Date.now();
         const http = context.switchToHttp();
@@ -51,5 +51,5 @@ class NestHTTPInterceptor {
         }
     }
 }
-exports.NestHTTPInterceptor = NestHTTPInterceptor;
-//# sourceMappingURL=index.js.map
+exports.HTTPInterceptor = HTTPInterceptor;
+//# sourceMappingURL=http.interceptor.js.map
