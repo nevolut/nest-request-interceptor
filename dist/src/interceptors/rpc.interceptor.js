@@ -5,15 +5,26 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RPCInterceptor = void 0;
+const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 const operators_1 = require("rxjs/operators");
 const log_1 = require("../utils/log");
 let RPCInterceptor = class RPCInterceptor {
+    constructor(reflector) {
+        this.reflector = reflector;
+    }
     intercept(context, next) {
         const startTime = Date.now();
+        const skip = this.reflector.getAllAndOverride("skip-request-interceptor", [
+            context.getHandler(),
+            context.getClass()
+        ]);
         const rpc = context.switchToRpc();
         const ctx = rpc.getContext();
         const msg = ctx.getMessage();
@@ -27,10 +38,12 @@ let RPCInterceptor = class RPCInterceptor {
             (0, log_1.default)(`Error parsing message content: ${error.message}`);
             return next.handle();
         }
-        (0, log_1.default)(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
+        if (!skip)
+            (0, log_1.default)(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
         return next.handle().pipe((0, operators_1.tap)(() => {
             const duration = Date.now() - startTime;
-            (0, log_1.default)(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
+            if (!skip)
+                (0, log_1.default)(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
         }), (0, operators_1.catchError)(error => {
             var _a;
             if (!error.status || error.status >= 500)
@@ -49,7 +62,8 @@ let RPCInterceptor = class RPCInterceptor {
     }
 };
 RPCInterceptor = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [core_1.Reflector])
 ], RPCInterceptor);
 exports.RPCInterceptor = RPCInterceptor;
 //# sourceMappingURL=rpc.interceptor.js.map
