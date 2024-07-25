@@ -7,6 +7,6 @@ const http_interceptor_1 = require("./src/interceptors/http.interceptor");
 Object.defineProperty(exports, "HTTPInterceptor", { enumerable: true, get: function () { return http_interceptor_1.HTTPInterceptor; } });
 const rpc_interceptor_1 = require("./src/interceptors/rpc.interceptor");
 Object.defineProperty(exports, "RPCInterceptor", { enumerable: true, get: function () { return rpc_interceptor_1.RPCInterceptor; } });
-const log_1 = require("src/utils/log");
+const log_1 = require("./src/utils/log");
 exports.Log = log_1.default;
 //# sourceMappingURL=main.js.map
