@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RPCInterceptor = void 0;
 const core_1 = require("@nestjs/core");
@@ -21,10 +24,12 @@ let RPCInterceptor = class RPCInterceptor {
     }
     intercept(context, next) {
         const startTime = Date.now();
-        const skip = this.reflector.getAllAndOverride("skip-request-interceptor", [
-            context.getHandler(),
-            context.getClass()
-        ]);
+        const skip = this.reflector
+            ? this.reflector.getAllAndOverride("skip-request-interceptor", [
+                context.getHandler(),
+                context.getClass()
+            ])
+            : false;
         const rpc = context.switchToRpc();
         const ctx = rpc.getContext();
         const msg = ctx.getMessage();
@@ -63,6 +68,8 @@ let RPCInterceptor = class RPCInterceptor {
 };
 RPCInterceptor = __decorate([
     (0, common_1.Injectable)(),
+    __param(0, (0, common_1.Optional)()),
+    __param(0, (0, common_1.Inject)(core_1.Reflector)),
     __metadata("design:paramtypes", [core_1.Reflector])
 ], RPCInterceptor);
 exports.RPCInterceptor = RPCInterceptor;

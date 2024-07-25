@@ -1,2 +1,2 @@
-declare const log: (message: any) => void;
-export default log;
+declare const Log: (message: any) => void;
+export default Log;
