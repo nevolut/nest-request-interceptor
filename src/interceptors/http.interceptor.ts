@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Injectable
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 import { Observable, throwError } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
@@ -12,9 +13,15 @@ import log from "../utils/log";
 
 @Injectable()
 export class HTTPInterceptor implements NestInterceptor {
+  constructor(private reflector: Reflector) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 
+    const skip = this.reflector.getAllAndOverride<boolean>("skip-request-interceptor", [
+      context.getHandler(),
+      context.getClass()
+    ]);
     const http = context.switchToHttp();
     const req: Request = http.getRequest();
     const res: Response = http.getResponse();
@@ -23,11 +30,12 @@ export class HTTPInterceptor implements NestInterceptor {
       tap(() => {
         const duration = Date.now() - startTime;
         const statusCodeColor = this.getStatusCodeColor(res.statusCode);
-        log(
-          `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${
-            res.getHeader("content-length") || "-"
-          } ${duration}ms`
-        );
+        if (!skip)
+          log(
+            `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${
+              res.getHeader("content-length") || "-"
+            } ${duration}ms`
+          );
       }),
       catchError(error => {
         if (!error.status || error.status >= 500) console.error(error);

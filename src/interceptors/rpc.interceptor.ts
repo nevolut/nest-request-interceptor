@@ -1,14 +1,22 @@
+import { Reflector } from "@nestjs/core";
 import { NestInterceptor, ExecutionContext, CallHandler, Injectable } from "@nestjs/common";
 import { RpcException } from "@nestjs/microservices";
+
 import { Observable } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
 import log from "../utils/log";
 
 @Injectable()
 export class RPCInterceptor implements NestInterceptor {
+  constructor(private reflector: Reflector) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 
+    const skip = this.reflector.getAllAndOverride<boolean>("skip-request-interceptor", [
+      context.getHandler(),
+      context.getClass()
+    ]);
     const rpc = context.switchToRpc();
     const ctx = rpc.getContext();
     const msg = ctx.getMessage();
@@ -23,12 +31,13 @@ export class RPCInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
+    if (!skip) log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
 
     return next.handle().pipe(
       tap(() => {
         const duration = Date.now() - startTime;
-        log(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
+        if (!skip)
+          log(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
       }),
       catchError(error => {
         if (!error.status || error.status >= 500) console.error(error);
