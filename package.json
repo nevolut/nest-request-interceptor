@@ -14,8 +14,7 @@
   "dependencies": {
     "@nestjs/common": "^11.0.10",
     "@nestjs/microservices": "^11.0.10",
-    "express": "^4.21.2",
-    "moment": "^2.30.1"
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "source-map-loader": "^3.0.0"
