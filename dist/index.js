@@ -1,4 +1,10 @@
 "use strict";
+/**
+ * @module nest-request-interceptor
+ *
+ * This module provides request interceptors for HTTP and RPC communication in NestJS applications.
+ * It includes logging utilities and a decorator to selectively skip logging.
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Log = exports.SkipLogging = exports.RPCInterceptor = exports.HTTPInterceptor = void 0;
 const skip_logging_1 = require("./decorators/skip-logging");

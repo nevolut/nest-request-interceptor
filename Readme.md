@@ -114,6 +114,30 @@ export class ExampleController {
 }
 ```
 
+Determines whether to skip logging (`true` to disable logging, `false` to keep logging active).
+```typescript
+ import { Controller, Get } from "@nestjs/common";
+ import { SkipLogging } from "./decorators/skip-logging";
+
+ @Controller("users")
+ export class UserController {
+
+   // Logging is skipped for this method
+   @Get("hidden")
+   @SkipLogging()
+   hiddenRoute() {
+     return { message: "This request will not be logged" };
+   }
+
+   // Logging remains active for this method
+   @Get("public")
+   @SkipLogging(false)
+   publicRoute() {
+     return { message: "This request will be logged" };
+   }
+ }
+```
+
 ### Logging Format
 
 The logs are color-coded for easy readability:

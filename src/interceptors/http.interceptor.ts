@@ -8,7 +8,6 @@ import {
   Optional
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-
 import { Request, Response } from "express";
 import { Observable, throwError } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
@@ -16,11 +15,32 @@ import log from "../utils/log";
 
 @Injectable()
 export class HTTPInterceptor implements NestInterceptor {
+  /**
+   * Constructor for HTTPInterceptor.
+   *
+   * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
+   */
   constructor(@Optional() @Inject(Reflector) private readonly reflector?: Reflector) {}
 
+  /**
+   * Intercepts incoming HTTP requests and logs relevant details.
+   *
+   * Logs:
+   * - HTTP method
+   * - URL
+   * - Status code (color-coded)
+   * - Response time
+   * - Response size (if available)
+   * - Errors (if any)
+   *
+   * @param {ExecutionContext} context - Execution context of the HTTP request.
+   * @param {CallHandler} next - Next handler in the request pipeline.
+   * @returns {Observable<any>} Observable with request response or error.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 
+    // Check if logging is skipped for this request
     const skip = this.reflector
       ? this.reflector.getAllAndOverride<boolean>("skip-request-interceptor", [
           context.getHandler(),
@@ -65,6 +85,18 @@ export class HTTPInterceptor implements NestInterceptor {
     );
   }
 
+  /**
+   * Returns an ANSI color-coded string for the given HTTP status code.
+   *
+   * Colors:
+   * - Green (2xx): Successful responses
+   * - Blue (3xx): Redirections
+   * - Yellow (4xx): Client errors
+   * - Red (5xx): Server errors
+   *
+   * @param {number} statusCode - HTTP response status code.
+   * @returns {string} Color-coded status code string.
+   */
   private getStatusCodeColor(statusCode: number): string {
     if (statusCode >= 200 && statusCode < 300) {
       return `\x1b[32m${statusCode}\x1b[0m`; // Green for 2xx

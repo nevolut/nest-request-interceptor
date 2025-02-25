@@ -19,11 +19,32 @@ const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const log_1 = require("../utils/log");
 let HTTPInterceptor = class HTTPInterceptor {
+    /**
+     * Constructor for HTTPInterceptor.
+     *
+     * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
+     */
     constructor(reflector) {
         this.reflector = reflector;
     }
+    /**
+     * Intercepts incoming HTTP requests and logs relevant details.
+     *
+     * Logs:
+     * - HTTP method
+     * - URL
+     * - Status code (color-coded)
+     * - Response time
+     * - Response size (if available)
+     * - Errors (if any)
+     *
+     * @param {ExecutionContext} context - Execution context of the HTTP request.
+     * @param {CallHandler} next - Next handler in the request pipeline.
+     * @returns {Observable<any>} Observable with request response or error.
+     */
     intercept(context, next) {
         const startTime = Date.now();
+        // Check if logging is skipped for this request
         const skip = this.reflector
             ? this.reflector.getAllAndOverride("skip-request-interceptor", [
                 context.getHandler(),
@@ -56,21 +77,33 @@ let HTTPInterceptor = class HTTPInterceptor {
             return (0, rxjs_1.throwError)(() => error);
         }));
     }
+    /**
+     * Returns an ANSI color-coded string for the given HTTP status code.
+     *
+     * Colors:
+     * - Green (2xx): Successful responses
+     * - Blue (3xx): Redirections
+     * - Yellow (4xx): Client errors
+     * - Red (5xx): Server errors
+     *
+     * @param {number} statusCode - HTTP response status code.
+     * @returns {string} Color-coded status code string.
+     */
     getStatusCodeColor(statusCode) {
         if (statusCode >= 200 && statusCode < 300) {
-            return `\x1b[32m${statusCode}\x1b[0m`;
+            return `\x1b[32m${statusCode}\x1b[0m`; // Green for 2xx
         }
         else if (statusCode >= 300 && statusCode < 400) {
-            return `\x1b[34m${statusCode}\x1b[0m`;
+            return `\x1b[34m${statusCode}\x1b[0m`; // Blue for 3xx
         }
         else if (statusCode >= 400 && statusCode < 500) {
-            return `\x1b[33m${statusCode}\x1b[0m`;
+            return `\x1b[33m${statusCode}\x1b[0m`; // Yellow for 4xx
         }
         else if (statusCode >= 500) {
-            return `\x1b[31m${statusCode}\x1b[0m`;
+            return `\x1b[31m${statusCode}\x1b[0m`; // Red for 5xx
         }
         else {
-            return `${statusCode}`;
+            return `${statusCode}`; // Default no color
         }
     }
 };

@@ -19,11 +19,30 @@ const microservices_1 = require("@nestjs/microservices");
 const operators_1 = require("rxjs/operators");
 const log_1 = require("../utils/log");
 let RPCInterceptor = class RPCInterceptor {
+    /**
+     * Constructor for RPCInterceptor.
+     *
+     * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
+     */
     constructor(reflector) {
         this.reflector = reflector;
     }
+    /**
+     * Intercepts incoming RPC requests and logs relevant details.
+     *
+     * Logs:
+     * - Message ID (if available)
+     * - RPC pattern
+     * - Execution time
+     * - Errors (if any)
+     *
+     * @param {ExecutionContext} context - Execution context of the RPC request.
+     * @param {CallHandler} next - Next handler in the request pipeline.
+     * @returns {Observable<any>} Observable with request response or error.
+     */
     intercept(context, next) {
         const startTime = Date.now();
+        // Check if logging is skipped for this request
         const skip = this.reflector
             ? this.reflector.getAllAndOverride("skip-request-interceptor", [
                 context.getHandler(),
@@ -33,7 +52,8 @@ let RPCInterceptor = class RPCInterceptor {
         const rpc = context.switchToRpc();
         const ctx = rpc.getContext();
         const msg = ctx.getMessage();
-        let id, pattern;
+        let id;
+        let pattern;
         try {
             const data = JSON.parse(msg.content.toString());
             id = data.id;
