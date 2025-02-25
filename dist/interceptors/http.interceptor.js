@@ -12,13 +12,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RPCInterceptor = void 0;
-const core_1 = require("@nestjs/core");
+exports.HTTPInterceptor = void 0;
 const common_1 = require("@nestjs/common");
-const microservices_1 = require("@nestjs/microservices");
+const core_1 = require("@nestjs/core");
+const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const log_1 = require("../utils/log");
-let RPCInterceptor = class RPCInterceptor {
+let HTTPInterceptor = class HTTPInterceptor {
     constructor(reflector) {
         this.reflector = reflector;
     }
@@ -30,30 +30,21 @@ let RPCInterceptor = class RPCInterceptor {
                 context.getClass()
             ])
             : false;
-        const rpc = context.switchToRpc();
-        const ctx = rpc.getContext();
-        const msg = ctx.getMessage();
-        let id, pattern;
-        try {
-            const data = JSON.parse(msg.content.toString());
-            id = data.id;
-            pattern = data.pattern;
-        }
-        catch (error) {
-            (0, log_1.default)(`Error parsing message content: ${error.message}`);
-            return next.handle();
-        }
-        if (!skip)
-            (0, log_1.default)(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
+        const http = context.switchToHttp();
+        const req = http.getRequest();
+        const res = http.getResponse();
         return next.handle().pipe((0, operators_1.tap)(() => {
             const duration = Date.now() - startTime;
+            const statusCodeColor = this.getStatusCodeColor(res.statusCode);
             if (!skip)
-                (0, log_1.default)(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
+                (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms`);
         }), (0, operators_1.catchError)(error => {
             var _a;
             if (!error.status || error.status >= 500)
                 console.error(error);
             const duration = Date.now() - startTime;
+            const statusCode = error.status || error.statusCode || common_1.HttpStatus.INTERNAL_SERVER_ERROR;
+            const statusCodeColor = this.getStatusCodeColor(statusCode);
             let message = error.message || error;
             if ((_a = error.response) === null || _a === void 0 ? void 0 : _a.message) {
                 if (typeof error.response.message === "string")
@@ -61,16 +52,33 @@ let RPCInterceptor = class RPCInterceptor {
                 else
                     message = error.response.message.join(", ");
             }
-            (0, log_1.default)(`\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`);
-            throw new microservices_1.RpcException(message);
+            (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms \x1b[33m${message}\x1b[0m`);
+            return (0, rxjs_1.throwError)(() => error);
         }));
     }
+    getStatusCodeColor(statusCode) {
+        if (statusCode >= 200 && statusCode < 300) {
+            return `\x1b[32m${statusCode}\x1b[0m`;
+        }
+        else if (statusCode >= 300 && statusCode < 400) {
+            return `\x1b[34m${statusCode}\x1b[0m`;
+        }
+        else if (statusCode >= 400 && statusCode < 500) {
+            return `\x1b[33m${statusCode}\x1b[0m`;
+        }
+        else if (statusCode >= 500) {
+            return `\x1b[31m${statusCode}\x1b[0m`;
+        }
+        else {
+            return `${statusCode}`;
+        }
+    }
 };
-RPCInterceptor = __decorate([
+exports.HTTPInterceptor = HTTPInterceptor;
+exports.HTTPInterceptor = HTTPInterceptor = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Optional)()),
     __param(0, (0, common_1.Inject)(core_1.Reflector)),
     __metadata("design:paramtypes", [core_1.Reflector])
-], RPCInterceptor);
-exports.RPCInterceptor = RPCInterceptor;
-//# sourceMappingURL=rpc.interceptor.js.map
+], HTTPInterceptor);
+//# sourceMappingURL=http.interceptor.js.map
