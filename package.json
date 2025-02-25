@@ -1,6 +1,6 @@
 {
   "name": "nest-request-interceptor",
-  "version": "11.0.0",
+  "version": "11.0.1",
   "main": "dist/main.js",
   "scripts": {},
   "repository": {
