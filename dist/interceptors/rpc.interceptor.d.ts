@@ -3,6 +3,7 @@ import { NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
 import { Observable } from "rxjs";
 export declare class RPCInterceptor implements NestInterceptor {
     private readonly reflector?;
+    private readonly logger;
     /**
      * Constructor for RPCInterceptor.
      *

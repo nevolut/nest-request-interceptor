@@ -5,16 +5,18 @@ import {
   HttpStatus,
   Injectable,
   Inject,
-  Optional
+  Optional,
+  Logger
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 import { Observable, throwError } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
-import log from "../utils/log";
 
 @Injectable()
 export class HTTPInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(HTTPInterceptor.name);
+
   /**
    * Constructor for HTTPInterceptor.
    *
@@ -57,7 +59,7 @@ export class HTTPInterceptor implements NestInterceptor {
         const duration = Date.now() - startTime;
         const statusCodeColor = this.getStatusCodeColor(res.statusCode);
         if (!skip)
-          log(
+          this.logger.log(
             `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${
               res.getHeader("content-length") || "-"
             } ${duration}ms`
@@ -75,7 +77,7 @@ export class HTTPInterceptor implements NestInterceptor {
           else message = error.response.message.join(", ");
         }
 
-        log(
+        this.logger.error(
           `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${
             res.getHeader("content-length") || "-"
           } ${duration}ms \x1b[33m${message}\x1b[0m`

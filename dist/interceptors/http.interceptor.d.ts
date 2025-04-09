@@ -3,6 +3,7 @@ import { Reflector } from "@nestjs/core";
 import { Observable } from "rxjs";
 export declare class HTTPInterceptor implements NestInterceptor {
     private readonly reflector?;
+    private readonly logger;
     /**
      * Constructor for HTTPInterceptor.
      *

@@ -5,15 +5,17 @@ import {
   CallHandler,
   Injectable,
   Inject,
-  Optional
+  Optional,
+  Logger
 } from "@nestjs/common";
 import { RpcException } from "@nestjs/microservices";
 import { Observable } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
-import log from "../utils/log";
 
 @Injectable()
 export class RPCInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(RPCInterceptor.name);
+
   /**
    * Constructor for RPCInterceptor.
    *
@@ -56,17 +58,20 @@ export class RPCInterceptor implements NestInterceptor {
       id = data.id;
       pattern = data.pattern;
     } catch (error) {
-      log(`Error parsing message content: ${error.message}`);
+      this.logger.error(`Error parsing message content: ${error.message}`);
       return next.handle();
     }
 
-    if (!skip) log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
+    if (!skip)
+      this.logger.log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
 
     return next.handle().pipe(
       tap(() => {
         const duration = Date.now() - startTime;
         if (!skip)
-          log(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
+          this.logger.log(
+            `\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`
+          );
       }),
       catchError(error => {
         if (!error.status || error.status >= 500) console.error(error);
@@ -79,7 +84,7 @@ export class RPCInterceptor implements NestInterceptor {
           else message = error.response.message.join(", ");
         }
 
-        log(
+        this.logger.error(
           `\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${
             id || "-"
           } ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`

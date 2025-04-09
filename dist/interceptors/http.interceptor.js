@@ -11,14 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var HTTPInterceptor_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HTTPInterceptor = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const log_1 = require("../utils/log");
-let HTTPInterceptor = class HTTPInterceptor {
+let HTTPInterceptor = HTTPInterceptor_1 = class HTTPInterceptor {
     /**
      * Constructor for HTTPInterceptor.
      *
@@ -26,6 +26,7 @@ let HTTPInterceptor = class HTTPInterceptor {
      */
     constructor(reflector) {
         this.reflector = reflector;
+        this.logger = new common_1.Logger(HTTPInterceptor_1.name);
     }
     /**
      * Intercepts incoming HTTP requests and logs relevant details.
@@ -58,7 +59,7 @@ let HTTPInterceptor = class HTTPInterceptor {
             const duration = Date.now() - startTime;
             const statusCodeColor = this.getStatusCodeColor(res.statusCode);
             if (!skip)
-                (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms`);
+                this.logger.log(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms`);
         }), (0, operators_1.catchError)(error => {
             var _a;
             if (!error.status || error.status >= 500)
@@ -73,7 +74,7 @@ let HTTPInterceptor = class HTTPInterceptor {
                 else
                     message = error.response.message.join(", ");
             }
-            (0, log_1.default)(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms \x1b[33m${message}\x1b[0m`);
+            this.logger.error(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms \x1b[33m${message}\x1b[0m`);
             return (0, rxjs_1.throwError)(() => error);
         }));
     }
@@ -108,7 +109,7 @@ let HTTPInterceptor = class HTTPInterceptor {
     }
 };
 exports.HTTPInterceptor = HTTPInterceptor;
-exports.HTTPInterceptor = HTTPInterceptor = __decorate([
+exports.HTTPInterceptor = HTTPInterceptor = HTTPInterceptor_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Optional)()),
     __param(0, (0, common_1.Inject)(core_1.Reflector)),
