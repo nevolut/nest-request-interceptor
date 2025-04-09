@@ -49,7 +49,7 @@ export class AppModule {}
 For HTTP applications, register the HTTP interceptor in the main bootstrap function:
 
 ```typescript
-import { NestFactory } from "@nestjs/core";
+import { NestFactory, Reflector } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { HTTPInterceptor } from "nest-request-interceptor";
@@ -57,7 +57,8 @@ import { HTTPInterceptor } from "nest-request-interceptor";
 async function bootstrapHttp() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalInterceptors(new HTTPInterceptor());
+  const reflector = app.get(Reflector); // Get the Reflector instance, use it to enable skipping logging feature
+  app.useGlobalInterceptors(new HTTPInterceptor(reflector));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   await app.listen(3000);
