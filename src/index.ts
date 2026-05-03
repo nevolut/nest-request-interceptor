@@ -6,26 +6,13 @@
  */
 
 import { SkipLogging } from "./decorators/skip-logging";
+import { SkipNoise } from "./decorators/skip-noise";
 import { HTTPInterceptor } from "./interceptors/http.interceptor";
 import { RPCInterceptor } from "./interceptors/rpc.interceptor";
 import log from "./utils/log";
 
-/**
- * HTTPInterceptor - Logs HTTP requests and responses, capturing status codes, response times, and errors.
- */
 export { HTTPInterceptor };
-
-/**
- * RPCInterceptor - Logs RPC (microservices) requests and responses, including execution duration and errors.
- */
 export { RPCInterceptor };
-
-/**
- * SkipLogging - Decorator to disable logging on specific methods or controllers.
- */
 export { SkipLogging };
-
-/**
- * Log - Utility function for logging with timestamp formatting.
- */
+export { SkipNoise };
 export { log as Log };

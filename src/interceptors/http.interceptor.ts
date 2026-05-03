@@ -16,35 +16,22 @@ import { catchError, tap } from "rxjs/operators";
 @Injectable()
 export class HTTPInterceptor implements NestInterceptor {
   private readonly logger = new Logger(HTTPInterceptor.name);
+  private readonly noiseCache = new Map<string, string>();
 
-  /**
-   * Constructor for HTTPInterceptor.
-   *
-   * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
-   */
   constructor(@Optional() @Inject(Reflector) private readonly reflector?: Reflector) {}
 
-  /**
-   * Intercepts incoming HTTP requests and logs relevant details.
-   *
-   * Logs:
-   * - HTTP method
-   * - URL
-   * - Status code (color-coded)
-   * - Response time
-   * - Response size (if available)
-   * - Errors (if any)
-   *
-   * @param {ExecutionContext} context - Execution context of the HTTP request.
-   * @param {CallHandler} next - Next handler in the request pipeline.
-   * @returns {Observable<any>} Observable with request response or error.
-   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 
-    // Check if logging is skipped for this request
     const skip = this.reflector
       ? this.reflector.getAllAndOverride<boolean>("skip-request-interceptor", [
+          context.getHandler(),
+          context.getClass()
+        ])
+      : false;
+
+    const skipNoise = this.reflector
+      ? this.reflector.getAllAndOverride<boolean>("skip-noise-interceptor", [
           context.getHandler(),
           context.getClass()
         ])
@@ -56,14 +43,19 @@ export class HTTPInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
+        if (skip) return;
         const duration = Date.now() - startTime;
         const statusCodeColor = this.getStatusCodeColor(res.statusCode);
-        if (!skip)
-          this.logger.log(
-            `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${
-              res.getHeader("content-length") || "-"
-            } ${duration}ms`
-          );
+        const logLine = `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${duration}ms`;
+
+        if (skipNoise) {
+          const key = `${req.method}:${req.url}`;
+          const sig = `${res.statusCode}`;
+          if (this.noiseCache.get(key) === sig) return;
+          this.noiseCache.set(key, sig);
+        }
+
+        this.logger.log(logLine);
       }),
       catchError(error => {
         if (!error.status || error.status >= 500) console.error(error);

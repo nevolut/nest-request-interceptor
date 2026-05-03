@@ -15,33 +15,22 @@ import { catchError, tap } from "rxjs/operators";
 @Injectable()
 export class RPCInterceptor implements NestInterceptor {
   private readonly logger = new Logger(RPCInterceptor.name);
+  private readonly noiseCache = new Map<string, string>();
 
-  /**
-   * Constructor for RPCInterceptor.
-   *
-   * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
-   */
   constructor(@Optional() @Inject(Reflector) private readonly reflector?: Reflector) {}
 
-  /**
-   * Intercepts incoming RPC requests and logs relevant details.
-   *
-   * Logs:
-   * - Message ID (if available)
-   * - RPC pattern
-   * - Execution time
-   * - Errors (if any)
-   *
-   * @param {ExecutionContext} context - Execution context of the RPC request.
-   * @param {CallHandler} next - Next handler in the request pipeline.
-   * @returns {Observable<any>} Observable with request response or error.
-   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
 
-    // Check if logging is skipped for this request
     const skip = this.reflector
       ? this.reflector.getAllAndOverride<boolean>("skip-request-interceptor", [
+          context.getHandler(),
+          context.getClass()
+        ])
+      : false;
+
+    const skipNoise = this.reflector
+      ? this.reflector.getAllAndOverride<boolean>("skip-noise-interceptor", [
           context.getHandler(),
           context.getClass()
         ])
@@ -57,21 +46,28 @@ export class RPCInterceptor implements NestInterceptor {
       const data = JSON.parse(msg.content.toString());
       id = data.id;
       pattern = data.pattern;
-    } catch (error) {
-      this.logger.error(`Error parsing message content: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`Error parsing message content: ${(error as Error).message}`);
       return next.handle();
     }
 
-    if (!skip)
+    if (!skip && !skipNoise)
       this.logger.log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
 
     return next.handle().pipe(
       tap(() => {
+        if (skip) return;
         const duration = Date.now() - startTime;
-        if (!skip)
-          this.logger.log(
-            `\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`
-          );
+        const tag = id ? "SEND" : "EMIT";
+        const logLine = `\x1b[32m${tag}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`;
+
+        if (skipNoise && pattern) {
+          const sig = `${pattern}:ok`;
+          if (this.noiseCache.get(pattern) === sig) return;
+          this.noiseCache.set(pattern, sig);
+        }
+
+        this.logger.log(logLine);
       }),
       catchError(error => {
         if (!error.status || error.status >= 500) console.error(error);
@@ -84,11 +80,14 @@ export class RPCInterceptor implements NestInterceptor {
           else message = error.response.message.join(", ");
         }
 
-        this.logger.error(
-          `\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${
-            id || "-"
-          } ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`
-        );
+        if (!skip) {
+          this.logger.error(
+            `\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`
+          );
+        }
+
+        // Reset noise cache on error so next success logs
+        if (skipNoise && pattern) this.noiseCache.delete(pattern);
 
         throw new RpcException(message);
       })

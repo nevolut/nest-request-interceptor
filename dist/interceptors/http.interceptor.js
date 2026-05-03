@@ -19,35 +19,22 @@ const core_1 = require("@nestjs/core");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 let HTTPInterceptor = HTTPInterceptor_1 = class HTTPInterceptor {
-    /**
-     * Constructor for HTTPInterceptor.
-     *
-     * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
-     */
+    reflector;
+    logger = new common_1.Logger(HTTPInterceptor_1.name);
+    noiseCache = new Map();
     constructor(reflector) {
         this.reflector = reflector;
-        this.logger = new common_1.Logger(HTTPInterceptor_1.name);
     }
-    /**
-     * Intercepts incoming HTTP requests and logs relevant details.
-     *
-     * Logs:
-     * - HTTP method
-     * - URL
-     * - Status code (color-coded)
-     * - Response time
-     * - Response size (if available)
-     * - Errors (if any)
-     *
-     * @param {ExecutionContext} context - Execution context of the HTTP request.
-     * @param {CallHandler} next - Next handler in the request pipeline.
-     * @returns {Observable<any>} Observable with request response or error.
-     */
     intercept(context, next) {
         const startTime = Date.now();
-        // Check if logging is skipped for this request
         const skip = this.reflector
             ? this.reflector.getAllAndOverride("skip-request-interceptor", [
+                context.getHandler(),
+                context.getClass()
+            ])
+            : false;
+        const skipNoise = this.reflector
+            ? this.reflector.getAllAndOverride("skip-noise-interceptor", [
                 context.getHandler(),
                 context.getClass()
             ])
@@ -56,19 +43,27 @@ let HTTPInterceptor = HTTPInterceptor_1 = class HTTPInterceptor {
         const req = http.getRequest();
         const res = http.getResponse();
         return next.handle().pipe((0, operators_1.tap)(() => {
+            if (skip)
+                return;
             const duration = Date.now() - startTime;
             const statusCodeColor = this.getStatusCodeColor(res.statusCode);
-            if (!skip)
-                this.logger.log(`\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${res.getHeader("content-length") || "-"} ${duration}ms`);
+            const logLine = `\x1b[34m${req.method}\x1b[0m ${req.url} ${statusCodeColor || "-"} ${duration}ms`;
+            if (skipNoise) {
+                const key = `${req.method}:${req.url}`;
+                const sig = `${res.statusCode}`;
+                if (this.noiseCache.get(key) === sig)
+                    return;
+                this.noiseCache.set(key, sig);
+            }
+            this.logger.log(logLine);
         }), (0, operators_1.catchError)(error => {
-            var _a;
             if (!error.status || error.status >= 500)
                 console.error(error);
             const duration = Date.now() - startTime;
             const statusCode = error.status || error.statusCode || common_1.HttpStatus.INTERNAL_SERVER_ERROR;
             const statusCodeColor = this.getStatusCodeColor(statusCode);
             let message = error.message || error;
-            if ((_a = error.response) === null || _a === void 0 ? void 0 : _a.message) {
+            if (error.response?.message) {
                 if (typeof error.response.message === "string")
                     message = error.response.message;
                 else

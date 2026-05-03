@@ -19,33 +19,22 @@ const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 const operators_1 = require("rxjs/operators");
 let RPCInterceptor = RPCInterceptor_1 = class RPCInterceptor {
-    /**
-     * Constructor for RPCInterceptor.
-     *
-     * @param {Reflector} [reflector] - Optional NestJS Reflector for handling metadata.
-     */
+    reflector;
+    logger = new common_1.Logger(RPCInterceptor_1.name);
+    noiseCache = new Map();
     constructor(reflector) {
         this.reflector = reflector;
-        this.logger = new common_1.Logger(RPCInterceptor_1.name);
     }
-    /**
-     * Intercepts incoming RPC requests and logs relevant details.
-     *
-     * Logs:
-     * - Message ID (if available)
-     * - RPC pattern
-     * - Execution time
-     * - Errors (if any)
-     *
-     * @param {ExecutionContext} context - Execution context of the RPC request.
-     * @param {CallHandler} next - Next handler in the request pipeline.
-     * @returns {Observable<any>} Observable with request response or error.
-     */
     intercept(context, next) {
         const startTime = Date.now();
-        // Check if logging is skipped for this request
         const skip = this.reflector
             ? this.reflector.getAllAndOverride("skip-request-interceptor", [
+                context.getHandler(),
+                context.getClass()
+            ])
+            : false;
+        const skipNoise = this.reflector
+            ? this.reflector.getAllAndOverride("skip-noise-interceptor", [
                 context.getHandler(),
                 context.getClass()
             ])
@@ -64,25 +53,38 @@ let RPCInterceptor = RPCInterceptor_1 = class RPCInterceptor {
             this.logger.error(`Error parsing message content: ${error.message}`);
             return next.handle();
         }
-        if (!skip)
+        if (!skip && !skipNoise)
             this.logger.log(`\x1b[34m${id ? "REQUEST" : "RECEIVED"}\x1b[0m ${id || "-"} ${pattern}`);
         return next.handle().pipe((0, operators_1.tap)(() => {
+            if (skip)
+                return;
             const duration = Date.now() - startTime;
-            if (!skip)
-                this.logger.log(`\x1b[32m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`);
+            const tag = id ? "SEND" : "EMIT";
+            const logLine = `\x1b[32m${tag}\x1b[0m ${id || "-"} ${pattern} ${duration}ms`;
+            if (skipNoise && pattern) {
+                const sig = `${pattern}:ok`;
+                if (this.noiseCache.get(pattern) === sig)
+                    return;
+                this.noiseCache.set(pattern, sig);
+            }
+            this.logger.log(logLine);
         }), (0, operators_1.catchError)(error => {
-            var _a;
             if (!error.status || error.status >= 500)
                 console.error(error);
             const duration = Date.now() - startTime;
             let message = error.message || error;
-            if ((_a = error.response) === null || _a === void 0 ? void 0 : _a.message) {
+            if (error.response?.message) {
                 if (typeof error.response.message === "string")
                     message = error.response.message;
                 else
                     message = error.response.message.join(", ");
             }
-            this.logger.error(`\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`);
+            if (!skip) {
+                this.logger.error(`\x1b[31m${id ? "SEND" : "EMIT"}\x1b[0m ${id || "-"} ${pattern} ${duration}ms - \x1b[33m${message}\x1b[0m`);
+            }
+            // Reset noise cache on error so next success logs
+            if (skipNoise && pattern)
+                this.noiseCache.delete(pattern);
             throw new microservices_1.RpcException(message);
         }));
     }
