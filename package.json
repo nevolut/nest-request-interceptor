@@ -1,6 +1,6 @@
 {
   "name": "nest-request-interceptor",
-  "version": "11.1.0",
+  "version": "11.1.1",
   "description": "Lightweight HTTP and RPC request logging interceptors for NestJS with decorators to skip or deduplicate logs.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
